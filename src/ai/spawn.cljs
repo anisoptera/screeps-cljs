@@ -10,15 +10,16 @@
 
 (defn run-spawn
   [sp]
-  (when (= (spawn/energy sp) (spawn/energy-capacity sp))
+  #_(when (= (spawn/energy sp) (spawn/energy-capacity sp))
     (let [room (spawn/room sp)
           sources (room/find room js/FIND_SOURCES_ACTIVE)
           creeps (game/creeps)
           miners (filter-by-role "miner" creeps)
           couriers (filter-by-role "courier" creeps)]
-      #_(cond
-        (< (count miners) (count sources))
-        (spawn/create-miner sp)
+      (when (= (room/name room) "sim")
+        (cond
+          (< (count miners) (count sources))
+          (spawn/create-miner sp)
 
-        (< (count couriers) (count sources))
-        (spawn/create-courier sp)))))
+          (< (count couriers) (count sources))
+          (spawn/create-courier sp))))))

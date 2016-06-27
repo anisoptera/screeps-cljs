@@ -72,7 +72,7 @@
 
 (defn store
   [s]
-  (.-store s))
+  (js->clj (.-store s)))
 
 (defn store-capacity
   [s]

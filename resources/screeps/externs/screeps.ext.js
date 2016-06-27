@@ -219,7 +219,7 @@ RoomPosition.prototype = {
 	findPathTo: function (target, opts) { },
 	findNearest: function (type, opts) { },
 	findInRange: function (type, range, opts) { },
-	findClosest: function(type, opts) { },
+	findClosestByPath: function(type, opts) { },
 	findClosestByRange: function(type, opts) { },
 	getRangeTo: function(target) { },
 	equalsTo: function (target) { },

@@ -29,6 +29,14 @@
   [r from to & [opts]]
   (js->clj (.findPath r from to (if opts (clj->js opts))) :keywordize-keys true))
 
+(defn find-closest-by-range
+  [from otype & [ffn]]
+  (js->clj (.findClosestByRange from otype (if ffn #js {:filter ffn}))))
+
+(defn get-closest-by-range
+  [from objs & [ffn]]
+  (js->clj (.findClosestByRange from (clj->js objs) (if ffn #js {:filter ffn}))))
+
 (defn look
   ([r x y]
    (js->clj (.lookAt r x y) :keywordize-keys true))

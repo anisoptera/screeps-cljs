@@ -33,15 +33,15 @@
         id (js/parseInt (id-fun (creep/id creep)) 16)
         source (nth sources (mod id (count sources)))
         ctrlr (room/controller room)
-        const-sites (room/find room js/FIND_CONSTRUCTION_SITES)
-        const-site (nth const-sites (mod id (count const-sites)))
+        const-site (room/find-closest-by-range (structure/position creep) js/FIND_CONSTRUCTION_SITES)
         empty-extension (first (room/find room js/FIND_MY_STRUCTURES #(and
                                                                              (= (structure/type %) js/STRUCTURE_EXTENSION)
                                                                              (< (structure/energy %) (structure/energy-capacity %)))))
         empty-tower (first (room/find room js/FIND_MY_STRUCTURES #(and (= (structure/type %) js/STRUCTURE_TOWER)
                                                                        (< 100 (- (structure/energy-capacity %) (structure/energy %))))))
-        empty-container (first (room/find room js/FIND_STRUCTURES #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
-                                                                        (< (structure/energy %) (structure/energy-capacity %)))))
+        empty-container (room/find-closest-by-range (structure/position creep) js/FIND_STRUCTURES
+                                                    #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
+                                                          (< (reduce + (vals (structure/store %))) (structure/store-capacity %))))
         m (creep/memory creep)
         sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))]
 
