@@ -38,6 +38,10 @@
         empty-extension (first (room/find room js/FIND_MY_STRUCTURES #(and
                                                                              (= (structure/type %) js/STRUCTURE_EXTENSION)
                                                                              (< (structure/energy %) (structure/energy-capacity %)))))
+        empty-tower (first (room/find room js/FIND_MY_STRUCTURES #(and (= (structure/type %) js/STRUCTURE_TOWER)
+                                                                       (< 100 (- (structure/energy-capacity %) (structure/energy %))))))
+        empty-container (first (room/find room js/FIND_STRUCTURES #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
+                                                                        (< (structure/energy %) (structure/energy-capacity %)))))
         m (creep/memory creep)
         sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))]
 
@@ -62,6 +66,12 @@
         empty-extension
         (perform-at creep empty-extension creep/transfer-energy)
 
+        empty-tower
+        (perform-at creep empty-tower creep/transfer-energy)
+
+        empty-container
+        (perform-at creep empty-container creep/transfer-energy)
+
         :else
         (perform-at creep ctrlr creep/upgrade-controller))
        (if (= (creep/energy creep) 0)
@@ -70,9 +80,14 @@
         (creep/memory! creep (assoc m :dump true))
         (perform-at creep source creep/harvest)))))
 
+(defn run-courier
+  [creep]
+  (collect-energy creep))
+
 (defn run-miner
   [creep]
-  (let [m (creep/memory creep)]
+  (collect-energy creep)
+  #_(let [m (creep/memory creep)]
     (when (nil? (:source m))
       )))
 

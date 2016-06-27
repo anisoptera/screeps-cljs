@@ -12,7 +12,7 @@
 
 (defn max-hits
   [s]
-  (.-maxHits s))
+  (.-hitsMax s))
 
 (defn id
   [s]
@@ -29,7 +29,6 @@
 (defn type
   [s]
   (.-structureType s))
-
 
 (defn destroy
   [s]

@@ -16,7 +16,7 @@
           creeps (game/creeps)
           miners (filter-by-role "miner" creeps)
           couriers (filter-by-role "courier" creeps)]
-      (cond
+      #_(cond
         (< (count miners) (count sources))
         (spawn/create-miner sp)
 
