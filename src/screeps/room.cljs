@@ -23,7 +23,7 @@
 
 (defn find
   [r otype & [ffn]]
-  (.find r otype (if ffn #js {:filter ffn})))
+  (array-seq  (.find r otype (if ffn #js {:filter ffn}))))
 
 (defn find-path
   [r from to & [opts]]

@@ -13,18 +13,33 @@
     (f creep tgt)
     (creep/move-to creep tgt)))
 
+(defn renew-creep
+  [creep]
+  (let [room (creep/room creep)
+        spawns (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN))
+        target-spawn (game/spawns  (.-name (first spawns)))]
+    (if (pos/next-to? creep target-spawn)
+      (do 
+        (.renewCreep target-spawn creep))
+      (creep/move-to creep target-spawn))))
+
 (defn collect-energy
   [creep]
-  (let [sim-room (game/rooms "sim")
-        sources (room/find sim-room js/FIND_SOURCES_ACTIVE)
-        source (nth sources (mod (.substring (creep/id creep) 2) (count sources)))
-        ctrlr (room/controller sim-room)
-        const-site (first (room/find sim-room js/FIND_CONSTRUCTION_SITES))
-        empty-extension (first (room/find sim-room js/FIND_MY_STRUCTURES #(and
+  (let [room (creep/room creep)
+        sources (room/find room js/FIND_SOURCES_ACTIVE)
+        id-fun (if (= (room/name room) "sim") ;; simulated ids are like "idxxxx00", so we only want the middle bits.
+                 #(.substring % 2 4)          ;; real ids are giant hex monstrosities, and only the least significant bits are unique
+                 #(.substring % 20))
+        id (js/parseInt (id-fun (creep/id creep)) 16)
+        source (nth sources (mod id (count sources)))
+        ctrlr (room/controller room)
+        const-sites (room/find room js/FIND_CONSTRUCTION_SITES)
+        const-site (nth const-sites (mod id (count const-sites)))
+        empty-extension (first (room/find room js/FIND_MY_STRUCTURES #(and
                                                                              (= (structure/type %) js/STRUCTURE_EXTENSION)
                                                                              (< (structure/energy %) (structure/energy-capacity %)))))
         m (creep/memory creep)
-        sp1 (game/spawns "Spawn1")]
+        sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))]
 
     (if (:dump m)
       (do
@@ -34,6 +49,9 @@
 
         (= 1 (structure/level ctrlr))
         (perform-at creep ctrlr creep/upgrade-controller)
+
+        (< (.-energy sp1) 100)
+        (perform-at creep sp1 creep/transfer-energy)
 
         const-site
         (perform-at creep const-site creep/build)
@@ -50,6 +68,18 @@
          (creep/memory! creep (assoc m :dump false))))
       (if (= (creep/energy creep) (creep/energy-capacity creep))
         (creep/memory! creep (assoc m :dump true))
-        (if (pos/next-to? creep source)
-          (creep/harvest creep source)
-          (creep/move-to creep source))))))
+        (perform-at creep source creep/harvest)))))
+
+(defn run-miner
+  [creep]
+  (let [m (creep/memory creep)]
+    (when (nil? (:source m))
+      )))
+
+(defn run-creep
+  [creep]
+  (let [role (:role (creep/memory creep))]
+    (condp = role
+      "miner" (run-miner creep)
+      "courier" (run-courier creep)
+      (collect-energy creep))))

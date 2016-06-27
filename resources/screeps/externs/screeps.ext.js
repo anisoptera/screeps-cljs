@@ -51,7 +51,7 @@ Creep.prototype = {
 	repair: function (target) { },
 	say: function(message) { },
 	suicide: function () { },
-	transferEnergy: function (target, amount) { },
+	transfer: function (target, resourceType, amount) { },
 	unclaimController: function(target) { },
 	upgradeController: function(target) { }
 };
@@ -258,7 +258,8 @@ Spawn.prototype = {
 	createCreep: function (bodyParts, name, memory) { },
 	destroy: function() { },
 	notifyWhenAttacked: function(enabled) { },
-	transferEnergy: function (target, amount) { }
+	transferEnergy: function (target, amount) { },
+  renewCreep: function (target) { }
 };
 var Structure_Extension = function() { };
 Structure_Extension.prototype = {

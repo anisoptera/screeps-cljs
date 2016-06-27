@@ -6,10 +6,14 @@
   []
   (.-time js/Game))
 
+(defn jsx->clj
+  [x]
+  (into {} (for [k (.keys js/Object x)] [(keyword k) (aget x k)])))
+
 (defn creeps
   ([]
    (-> (.-creeps js/Game)
-       js->clj
+       jsx->clj
        vals))
   ([n]
    (aget (.-creeps js/Game) n)))
@@ -17,7 +21,7 @@
 (defn spawns
   ([]
    (-> (.-spawns js/Game)
-       js->clj
+       jsx->clj
        vals))
   ([n]
    (aget (.-spawns js/Game) n)))
@@ -25,7 +29,7 @@
 (defn rooms
   ([]
    (-> (.-rooms js/Game)
-       js->clj
+       jsx->clj
        vals))
   ([n]
    (aget (.-rooms js/Game) n)))

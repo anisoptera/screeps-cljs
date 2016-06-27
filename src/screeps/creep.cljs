@@ -13,6 +13,10 @@
   [c]
   (.-name c))
 
+(defn room
+  [c]
+  (.-room c))
+
 (defn move
   [c direction]
   (.move c direction))
@@ -38,8 +42,8 @@
   (aget c "carryCapacity"))
 
 (defn transfer-energy
-  [c t & [amt]]
-  (.transferEnergy c t amt))
+  [c t]
+  (.transfer c t js/RESOURCE_ENERGY nil))
 
 (defn upgrade-controller
   [c ctrl]
@@ -49,9 +53,17 @@
   [c ctrl]
   (.claimController c ctrl))
 
+(defn ttl
+  [c]
+  (.-ticksToLive c))
+
+(defn jsx->clj
+  [x]
+  (into {} (for [k (.keys js/Object x)] [(keyword k) (aget x k)])))
+
 (defn memory
   [c]
-  (js->clj (.-memory c) :keywordize-keys true))
+  (jsx->clj (.-memory c)))
 
 (defn memory!
   [c m]
