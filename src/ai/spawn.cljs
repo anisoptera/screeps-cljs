@@ -13,24 +13,26 @@
 (defn ^:export free-source-slots
   [room]
   (let [m (room/memory room)
-        sources (get "sources" m (init-sources room))
+        sources (or (get m "sources")
+                    (init-sources room))
         free (reduce + (map #(get-in sources [% "free"]) (keys sources)))]
-      free))
+    free))
 
 (defn run-spawn
   [sp]
-  (when (= (spawn/energy sp) (spawn/energy-capacity sp))
-    (let [room (spawn/room sp)
-          free-slots (free-source-slots room)
-          creeps (game/creeps)
-          miners (filter-by-role "miner" creeps)
-          couriers (filter-by-role "courier" creeps)]
-      (cond
-        (or (nil? couriers) (= 0 (count couriers)))
-        (do (.log js/console "making a bootstrapper") (spawn/create-courier sp))
+  (let [room (spawn/room sp)]
+    (when (and (not (spawn/spawning? sp))
+               (= (room/available-energy room) (room/energy-capacity room)))
+      (let [free-slots (free-source-slots room)
+            creeps (game/creeps)
+            miners (filter-by-role "miner" creeps)
+            couriers (filter-by-role "courier" creeps)]
+        (cond
+          (or (nil? couriers) (= 0 (count couriers)))
+          (do (.log js/console "making a bootstrapper") (spawn/create-courier sp))
 
-        (< 0 free-slots)
-        (do (.log js/console "making miners~") (spawn/create-miner sp))
+          (< 0 free-slots)
+          (do (.log js/console "making miners~") (spawn/create-miner sp))
 
-        (< (count couriers) (count miners))
-        (do (.log js/console "couriers it is") (spawn/create-courier sp))))))
+          (< (count couriers) (count miners))
+          (do (.log js/console "couriers it is") (spawn/create-courier sp)))))))

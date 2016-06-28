@@ -1,6 +1,7 @@
 (ns screeps.spawn
   (:refer-clojure :exclude [name])
-  (:require [screeps.creep :as creep])
+  (:require [screeps.creep :as creep]
+            [screeps.room :as room])
   (:use [screeps.memory :only [*memory*]]))
 
 (defn name
@@ -14,6 +15,10 @@
 (defn energy-capacity
   [s]
   (.-energyCapacity s))
+
+(defn spawning?
+  [s]
+  (.-spawning s))
 
 (def costs
   {js/WORK 100
@@ -37,7 +42,7 @@
 
 (defn create-template
   [sp template role]
-  (let [capacity (energy-capacity sp)
+  (let [capacity (room/energy-capacity (room sp))
         new-creep (.createCreep sp (clj->js (cap-template template capacity)) nil nil)]
     (when (string? new-creep)
       (swap! *memory* #(assoc-in % ["creeps" new-creep] {"arch" role "size" capacity})))))

@@ -16,11 +16,11 @@
                                (< (structure/hits %) desired-wall-strength)))
         roads (room/find room js/FIND_STRUCTURES
                          #(and (= (structure/type %) js/STRUCTURE_ROAD)
-                               (< 250 (- (structure/max-hits %) (structure/hits %)))))
+                               (< 1000 (- (structure/max-hits %) (structure/hits %)))))
 
         containers (room/find room js/FIND_STRUCTURES
                               #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
-                                    (< (structure/hits %) (structure/max-hits %))))
+                                    (< 50000 (- (structure/max-hits %) (structure/hits %)))))
 
         structs (room/find room js/FIND_MY_STRUCTURES #(< (structure/hits %) (structure/max-hits %)))]
     (cond

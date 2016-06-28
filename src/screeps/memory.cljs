@@ -1,6 +1,18 @@
-(ns screeps.memory)
+(ns screeps.memory
+  (:require [cognitect.transit :as t]))
 
 (def *memory* (atom {}))
+
+(defn ^:export load-memory
+  []
+  (reset! *memory*
+          (let [r (t/reader :json)]
+            (t/read r (.get js/RawMemory)))))
+
+(defn ^:export write-memory!
+  []
+  (let [w (t/writer :json)]
+    (.set js/RawMemory (t/write w @*memory*))))
 
 (defn fetch
   ([]

@@ -59,7 +59,7 @@
   [creep]
   (room/find-closest-by-range creep js/FIND_MY_STRUCTURES
                               #(and (= (structure/type %) js/STRUCTURE_TOWER)
-                                    (< 100 (- (structure/energy-capacity %) (structure/energy %))))))
+                                    (< 500 (- (structure/energy-capacity %) (structure/energy %))))))
 
 
 (defn collect-energy
@@ -137,6 +137,15 @@
         :when (not (= "wall" (pos/look-for check-pos js/LOOK_TERRAIN)))]
     check-pos))
 
+(defn ^:export reset-sources
+  [room]
+  (let [m (room/memory room)
+        creeps (room/find room js/FIND_MY_CREEPS)]
+    (init-sources room)
+    (doseq [creep creeps]
+      (let [cm (creep/memory creep)]
+        (creep/memory! creep (dissoc cm "source"))))))
+
 (defn ^:export init-sources
   [room]
   (let [m (room/memory room)
@@ -152,7 +161,8 @@
         m (room/memory room)
         cm (creep/memory creep)]
 
-    (let [sources (get m "sources" (init-sources room))
+    (let [sources (or (get m "sources")
+                      (init-sources room))
           open-sources (filter #(< 0 (get-in sources [% "free"])) (keys sources))
           my-id (creep/id creep)]
       (when-let [my-source (first (shuffle open-sources))]
@@ -166,8 +176,8 @@
 (defn load-source
   [creep]
   (let [m (creep/memory creep)]
-
-    (if-let [source-id (get "source" m (select-source creep))]
+    (if-let [source-id (or (get m "source")
+                           (select-source creep))]
       (game/object source-id)
       nil)))
 
@@ -212,8 +222,9 @@
       :else
       (let [room (creep/room creep)
             spawn (first (room/find room js/FIND_MY_SPAWNS))
-            size (get :size m (spawn/body-cost (map #(get % :type) (creep/body creep))))]
-        (if (= (:size m) (room/energy-capacity room))
+            size (or (get m "size")
+                     (spawn/body-cost (map #(get % :type) (creep/body creep))))]
+        (if (= size (room/energy-capacity room))
           (do (creep/memory! creep (assoc m "renewing" true))
               true)
           (do (creep/memory! creep (assoc m "dying" true))
