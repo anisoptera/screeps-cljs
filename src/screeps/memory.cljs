@@ -1,8 +1,10 @@
 (ns screeps.memory)
 
+(def *memory* (atom {}))
+
 (defn fetch
   ([]
-   (js->clj js/Memory))
+   (@*memory*))
   ([k]
    (fetch k nil))
   ([k default]
@@ -12,11 +14,11 @@
 
 (defn store!
   [k o]
-  (aset js/Memory (name k) (clj->js o)))
+  (swap! *memory* #(assoc % (name k) o)))
 
 (defn update!
   "call f with memory location k and store the result back in k"
   [k f & args]
   (let [d (fetch k)]
-    (store k (apply f d args))))
+    (store! k (apply f d args))))
 

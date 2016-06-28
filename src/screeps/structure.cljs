@@ -44,7 +44,9 @@
 
 (defn transfer-energy
   [s tgt & [amt]]
-  (.transferEnergy s tgt amt))
+  (if (= (type s) js/STRUCTURE_CONTAINER)
+    (.transfer s tgt js/RESOURCE_ENERGY)
+    (.transferEnergy s tgt amt)))
 
 (defn cooldown
   [s]
@@ -78,7 +80,10 @@
   [s]
   (jsx->clj (.-store s)))
 
+(defn store-quantity
+  [s]
+  (reduce + (vals (store s))))
+
 (defn store-capacity
   [s]
   (.-storeCapacity s))
-

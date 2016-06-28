@@ -36,7 +36,7 @@ Creep.prototype = {
 	build: function (target) { },
 	cancelOrder: function (methodName) { },
 	claimController: function (target) { },
-	dropEnergy: function (amount) { },
+	drop: function (resourceType, amount) { },
 	getActiveBodyparts: function (type) { },
 	harvest: function (target) { },
 	heal: function (target) { },

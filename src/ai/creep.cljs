@@ -5,12 +5,20 @@
             [screeps.spawn :as spawn]
             [screeps.position :as pos]
             [screeps.structure :as structure]
-            [screeps.memory :as m]))
+            [screeps.memory :as m])
+  (:refer-clojure :exclude [])
+  (:use [screeps.utils :only [jsx->clj]]))
 
 (defn perform-at
   [creep tgt f]
   (if (pos/next-to? creep tgt)
     (f creep tgt)
+    (creep/move-to creep tgt)))
+
+(defn perform-with
+  [creep tgt f]
+  (if (pos/next-to? creep tgt)
+    (f tgt creep)
     (creep/move-to creep tgt)))
 
 (defn renew-creep
@@ -23,82 +31,205 @@
         (.renewCreep target-spawn creep))
       (creep/move-to creep target-spawn))))
 
-(defn find-empty-container
+(defn find-ground-score
   [creep]
-  (room/find-closest-by-range (structure/position creep) js/FIND_STRUCTURES
+  (room/find-closest-by-range creep js/FIND_DROPPED_ENERGY))
+
+(defn find-full-container
+  [creep]
+  (room/find-closest-by-range creep js/FIND_STRUCTURES
                               #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
-                                    (< (reduce + (vals (structure/store %))) (structure/store-capacity %)))))
+                                    (< 0 (structure/store-quantity %)))))
+
+(defn find-empty-container
+  "Finds the closest empty container to creep (if any)."
+  [creep]
+  (room/find-closest-by-range creep js/FIND_STRUCTURES
+                              #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
+                                    (< (structure/store-quantity %) (structure/store-capacity %)))))
+
+(defn find-empty-extension
+  "Finds the closest empty extension to creep (if any)."
+  [creep]
+  (room/find-closest-by-range creep js/FIND_MY_STRUCTURES #(and
+                                          (= (structure/type %) js/STRUCTURE_EXTENSION)
+                                          (< (structure/energy %) (structure/energy-capacity %)))))
+
+(defn find-empty-tower
+  [creep]
+  (room/find-closest-by-range creep js/FIND_MY_STRUCTURES
+                              #(and (= (structure/type %) js/STRUCTURE_TOWER)
+                                    (< 100 (- (structure/energy-capacity %) (structure/energy %))))))
+
 
 (defn collect-energy
   [creep]
   (let [room (creep/room creep)
-        sources (room/find room js/FIND_SOURCES_ACTIVE)
-        id-fun (if (= (room/name room) "sim") ;; simulated ids are like "idxxxx00", so we only want the middle bits.
-                 #(.substring % 2 4)          ;; real ids are giant hex monstrosities, and only the least significant bits are unique
-                 #(.substring % 20))
-        id (js/parseInt (id-fun (creep/id creep)) 16)
-        source (nth sources (mod id (count sources)))
         ctrlr (room/controller room)
-        const-site (room/find-closest-by-range (structure/position creep) js/FIND_CONSTRUCTION_SITES)
-        empty-extension (first (room/find room js/FIND_MY_STRUCTURES #(and
-                                                                             (= (structure/type %) js/STRUCTURE_EXTENSION)
-                                                                             (< (structure/energy %) (structure/energy-capacity %)))))
-        empty-tower (first (room/find room js/FIND_MY_STRUCTURES #(and (= (structure/type %) js/STRUCTURE_TOWER)
-                                                                       (< 100 (- (structure/energy-capacity %) (structure/energy %))))))
-        empty-container (find-empty-container creep)
+        empty-extension (memoize find-empty-extension)
+        const-site (memoize #(room/find-closest-by-range creep js/FIND_CONSTRUCTION_SITES))
+        empty-tower (memoize find-empty-tower)
         m (creep/memory creep)
         sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))]
-
-    (if (:dump m)
+    (if (m "dump")
       (do
-       (cond
-        (and (not (nil? ctrlr)) (not (structure/mine? ctrlr)))
-        (perform-at creep ctrlr creep/claim-controller)
+        (cond
+          (and (not (nil? ctrlr)) (not (structure/mine? ctrlr)))
+          (perform-at creep ctrlr creep/claim-controller)
 
-        (= 1 (structure/level ctrlr))
-        (perform-at creep ctrlr creep/upgrade-controller)
+          (= 1 (structure/level ctrlr))
+          (perform-at creep ctrlr creep/upgrade-controller)
 
-        (< (.-energy sp1) 100)
-        (perform-at creep sp1 creep/transfer-energy)
+          (< (.-energy sp1) 100)
+          (perform-at creep sp1 creep/transfer-energy)
 
-        const-site
-        (perform-at creep const-site creep/build)
+          (const-site)
+          (perform-at creep (const-site) creep/build)
 
-        (< (.-energy sp1) 300)
-        (perform-at creep sp1 creep/transfer-energy)
+          (< (.-energy sp1) 300)
+          (perform-at creep sp1 creep/transfer-energy)
 
-        empty-extension
-        (perform-at creep empty-extension creep/transfer-energy)
+          (empty-extension creep)
+          (perform-at creep (empty-extension creep) creep/transfer-energy)
 
-        empty-tower
-        (perform-at creep empty-tower creep/transfer-energy)
+          (empty-tower creep)
+          (perform-at creep (empty-tower creep) creep/transfer-energy)
 
-        empty-container
-        (perform-at creep empty-container creep/transfer-energy)
+          :else
+          (perform-at creep ctrlr creep/upgrade-controller))
+        (if (= (creep/energy creep) 0)
+          (creep/memory! creep (-> m
+                                   (dissoc "dump")
+                                   (dissoc "role"))) ;; after we're done, return to previous role
 
-        :else
-        (perform-at creep ctrlr creep/upgrade-controller))
-       (if (= (creep/energy creep) 0)
-         (creep/memory! creep (assoc m :dump false))))
+          ;; drive by repairs
+          (when-let [rep-target (first (room/find-in-range creep js/FIND_STRUCTURES 1
+                                                           #(< 100 (- (structure/max-hits %) (structure/hits %)))))]
+            (creep/repair creep rep-target))))
       (if (= (creep/energy creep) (creep/energy-capacity creep))
-        (creep/memory! creep (assoc m :dump true))
-        (perform-at creep source creep/harvest)))))
+        (creep/memory! creep (assoc m "dump" true))
+        ;; find something
+        (let [ground-score (memoize find-ground-score)
+              container (memoize find-full-container)]
+          (cond
+            (ground-score creep)
+            (perform-at creep (ground-score creep) creep/pickup)
+
+            (container creep)
+            (perform-with creep (container creep) structure/transfer-energy)
+
+            :else ;;probably bootstrapping, just try to mine
+            (let [source (room/find-closest-by-range creep js/FIND_SOURCES_ACTIVE)]
+              (perform-at creep source creep/harvest))))))))
 
 (defn run-courier
   [creep]
   (collect-energy creep))
 
+(defn ^:export open-adjacent-tiles
+  [pos]
+  (for [x-mod [-1 0 1]
+        y-mod [-1 0 1]
+        :when (not (and (= x-mod 0) (= y-mod 0)))
+        :let [x (+ (.-x pos) x-mod)
+              y (+ (.-y pos) y-mod)
+              check-pos (pos/create x y (pos/room-name pos))]
+        :when (not (= "wall" (pos/look-for check-pos js/LOOK_TERRAIN)))]
+    check-pos))
+
+(defn ^:export init-sources
+  [room]
+  (let [m (room/memory room)
+        sources (room/find room js/FIND_SOURCES)
+        slots (into {} (map #(vector (structure/id %) {"free" (count (open-adjacent-tiles (pos/position %)))}) sources))]
+    (room/memory! room (assoc m "sources" slots))
+    slots))
+
+
+(defn ^:export select-source
+  [creep]
+  (let [room (creep/room creep)
+        m (room/memory room)
+        cm (creep/memory creep)]
+
+    (let [sources (get m "sources" (init-sources room))
+          open-sources (filter #(< 0 (get-in sources [% "free"])) (keys sources))
+          my-id (creep/id creep)]
+      (when-let [my-source (first (shuffle open-sources))]
+        (room/memory! room (assoc m "sources"
+                                  (-> sources
+                                      (update-in [my-source "free"] dec)
+                                      (update-in [my-source "assigned"] #(if (nil? %) [my-id] (conj % my-id))))))
+        (creep/memory! creep (assoc cm "source" (name my-source)))
+        my-source))))
+
+(defn load-source
+  [creep]
+  (let [m (creep/memory creep)]
+
+    (if-let [source-id (get "source" m (select-source creep))]
+      (game/object source-id)
+      nil)))
+
 (defn run-miner
   [creep]
-  (collect-energy creep)
-  #_(let [m (creep/memory creep)]
-    (when (nil? (:source m))
-      )))
+  (let [m (creep/memory creep)]
+    (if (= (creep/energy creep) (creep/energy-capacity creep))
+      ;; find a place to dump it
+      (if-let [container (find-empty-container creep)]
+        (if (> 5 (pos/range-to creep container))
+          (perform-at creep container creep/transfer-energy)
+          (creep/drop-energy creep))
+        (creep/drop-energy creep))
+      ;; just mine
+      (let [source (load-source creep)]
+        (if-not (or (nil? source)
+                    (= 0 (structure/energy source)))
+          (perform-at creep source creep/harvest)
+
+          ;; just go perform tasks i guess
+          (do (creep/memory! creep (assoc m "role" "courier"))
+              (run-courier creep)))))))
+
+(defn should-renew?
+  [creep]
+  (let [m (creep/memory creep)]
+    (cond
+      (m "dying")
+      false
+
+      (and (not (m "renewing")) (< 200 (creep/ttl creep)))
+      false
+
+      (and (m "renewing") (< 1000 (creep/ttl creep)))
+      (do
+        (creep/memory! creep (dissoc m "renewing"))
+        false)
+
+      (m "renewing")
+      true
+
+      :else
+      (let [room (creep/room creep)
+            spawn (first (room/find room js/FIND_MY_SPAWNS))
+            size (get :size m (spawn/body-cost (map #(get % :type) (creep/body creep))))]
+        (if (= (:size m) (room/energy-capacity room))
+          (do (creep/memory! creep (assoc m "renewing" true))
+              true)
+          (do (creep/memory! creep (assoc m "dying" true))
+              false))))))
 
 (defn run-creep
   [creep]
-  (let [role (:role (creep/memory creep))]
-    (condp = role
-      "miner" (run-miner creep)
-      "courier" (run-courier creep)
-      (collect-energy creep))))
+  (when-not (creep/spawning? creep)
+    (let [mem (creep/memory creep)
+          role (or (mem "role")
+                   (mem "arch"))]
+
+      (if (should-renew? creep)
+        (renew-creep creep)
+
+        (condp = role
+          "miner" (run-miner creep)
+          "courier" (run-courier creep)
+          (collect-energy creep))))))

@@ -1,5 +1,7 @@
 (ns screeps.creep
-  (:refer-clojure :exclude [name]))
+  (:refer-clojure :exclude [name])
+  (:use [screeps.utils :only [jsx->clj]]
+        [screeps.memory :only [*memory*]]))
 
 (defn id
   [c]
@@ -7,7 +9,7 @@
 
 (defn body
   [c]
-  (js->clj (.-body c)))
+  (jsx->clj (.-body c)))
 
 (defn name
   [c]
@@ -29,9 +31,21 @@
   [c t]
   (.build c t))
 
+(defn repair
+  [c t]
+  (.repair c t))
+
 (defn harvest
   [c t]
   (.harvest c t))
+
+(defn pickup
+  [c t]
+  (.pickup c t))
+
+(defn spawning?
+  [c]
+  (.-spawning c))
 
 (defn energy
   [c]
@@ -45,6 +59,10 @@
   [c t]
   (.transfer c t js/RESOURCE_ENERGY nil))
 
+(defn drop-energy
+  [c]
+  (.drop c js/RESOURCE_ENERGY))
+
 (defn upgrade-controller
   [c ctrl]
   (.upgradeController c ctrl))
@@ -57,15 +75,11 @@
   [c]
   (.-ticksToLive c))
 
-(defn jsx->clj
-  [x]
-  (into {} (for [k (.keys js/Object x)] [(keyword k) (aget x k)])))
-
 (defn memory
   [c]
-  (jsx->clj (.-memory c)))
+  (get-in @*memory* ["creeps" (name c)] {}))
 
 (defn memory!
   [c m]
-  (aset js/Memory "creeps" (name c) (clj->js m)))
+  (swap! *memory* #(assoc-in % ["creeps" (name c)] m)))
 

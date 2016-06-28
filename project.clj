@@ -6,6 +6,7 @@
                   :exclusion [org.clojure/data.json]]
                  [cheshire "5.5.0"]
                  [org.clojure/data.json "0.2.6" :classifier "aot"]
+                 [com.cognitect/transit-cljs "0.8.239"]
                  [clj-http "2.0.0"]
                  [org.clojure/data.codec "0.1.0"]]
   :jvm-opts ^:replace ["-Xmx1g" "-server"]

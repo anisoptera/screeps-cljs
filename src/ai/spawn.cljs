@@ -2,24 +2,35 @@
   (:require [screeps.game :as game]
             [screeps.creep :as creep]
             [screeps.spawn :as spawn]
-            [screeps.room :as room]))
+            [screeps.room :as room])
+  (:use [ai.creep :only [init-sources]]
+        [screeps.utils :only [jsx->clj]]))
 
 (defn filter-by-role
   [role creeps]
-  (filter #(= role (:role (creep/memory %))) creeps))
+  (filter #(= role ((creep/memory %) "arch")) creeps))
+
+(defn ^:export free-source-slots
+  [room]
+  (let [m (room/memory room)
+        sources (get "sources" m (init-sources room))
+        free (reduce + (map #(get-in sources [% "free"]) (keys sources)))]
+      free))
 
 (defn run-spawn
   [sp]
-  #_(when (= (spawn/energy sp) (spawn/energy-capacity sp))
+  (when (= (spawn/energy sp) (spawn/energy-capacity sp))
     (let [room (spawn/room sp)
-          sources (room/find room js/FIND_SOURCES_ACTIVE)
+          free-slots (free-source-slots room)
           creeps (game/creeps)
           miners (filter-by-role "miner" creeps)
           couriers (filter-by-role "courier" creeps)]
-      (when (= (room/name room) "sim")
-        (cond
-          (< (count miners) (count sources))
-          (spawn/create-miner sp)
+      (cond
+        (or (nil? couriers) (= 0 (count couriers)))
+        (do (.log js/console "making a bootstrapper") (spawn/create-courier sp))
 
-          (< (count couriers) (count sources))
-          (spawn/create-courier sp))))))
+        (< 0 free-slots)
+        (do (.log js/console "making miners~") (spawn/create-miner sp))
+
+        (< (count couriers) (count miners))
+        (do (.log js/console "couriers it is") (spawn/create-courier sp))))))

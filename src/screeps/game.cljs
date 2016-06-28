@@ -1,14 +1,11 @@
 (ns screeps.game
-  (:refer-clojure :exclude [time]))
+  (:refer-clojure :exclude [time])
+  (:use [screeps.utils :only [jsx->clj]]))
 
 (defn time
   "Return the game time"
   []
   (.-time js/Game))
-
-(defn jsx->clj
-  [x]
-  (into {} (for [k (.keys js/Object x)] [(keyword k) (aget x k)])))
 
 (defn creeps
   ([]

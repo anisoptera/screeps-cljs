@@ -1,5 +1,7 @@
 (ns screeps.spawn
-  (:refer-clojure :exclude [name]))
+  (:refer-clojure :exclude [name])
+  (:require [screeps.creep :as creep])
+  (:use [screeps.memory :only [*memory*]]))
 
 (defn name
   [s]
@@ -35,21 +37,27 @@
 
 (defn create-template
   [sp template role]
-  (let [capacity (energy-capacity sp)]
-    (.createCreep sp (clj->js (cap-template template capacity)) nil (clj->js {:role role :size capacity}))))
+  (let [capacity (energy-capacity sp)
+        new-creep (.createCreep sp (clj->js (cap-template template capacity)) nil nil)]
+    (when (string? new-creep)
+      (swap! *memory* #(assoc-in % ["creeps" new-creep] {"arch" role "size" capacity})))))
+
 
 (def miner-template
   [js/MOVE js/WORK js/CARRY js/WORK ; 300
-   js/WORK js/MOVE js/WORK]) ; 550
+   js/WORK js/MOVE js/WORK ; 550
+   js/WORK js/CARRY js/WORK ; 800 - at which point we should have roads
+   ])
 
 (defn create-miner
   [sp]
   (create-template sp miner-template "miner"))
 
 (def courier-template
-  [js/MOVE js/CARRY js/CARRY js/CARRY js/MOVE js/MOVE ; 300
-   js/CARRY js/CARRY js/WORK js/MOVE] ; 550
-  )
+  [js/MOVE js/CARRY js/CARRY js/WORK js/MOVE ; 300
+   js/CARRY js/CARRY js/WORK js/MOVE ; 550
+   js/CARRY js/CARRY js/CARRY js/CARRY js/CARRY ; 800 - carries 500
+   ])
 
 (defn create-courier
   [sp]
