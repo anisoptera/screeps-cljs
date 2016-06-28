@@ -23,6 +23,12 @@
         (.renewCreep target-spawn creep))
       (creep/move-to creep target-spawn))))
 
+(defn find-empty-container
+  [creep]
+  (room/find-closest-by-range (structure/position creep) js/FIND_STRUCTURES
+                              #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
+                                    (< (reduce + (vals (structure/store %))) (structure/store-capacity %)))))
+
 (defn collect-energy
   [creep]
   (let [room (creep/room creep)
@@ -39,9 +45,7 @@
                                                                              (< (structure/energy %) (structure/energy-capacity %)))))
         empty-tower (first (room/find room js/FIND_MY_STRUCTURES #(and (= (structure/type %) js/STRUCTURE_TOWER)
                                                                        (< 100 (- (structure/energy-capacity %) (structure/energy %))))))
-        empty-container (room/find-closest-by-range (structure/position creep) js/FIND_STRUCTURES
-                                                    #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
-                                                          (< (reduce + (vals (structure/store %))) (structure/store-capacity %))))
+        empty-container (find-empty-container creep)
         m (creep/memory creep)
         sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))]
 

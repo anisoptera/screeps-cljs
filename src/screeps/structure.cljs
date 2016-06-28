@@ -70,9 +70,13 @@
   [s]
   (.-ticksToLive s))
 
+(defn jsx->clj
+  [x]
+  (into {} (for [k (.keys js/Object x)] [(keyword k) (aget x k)])))
+
 (defn store
   [s]
-  (js->clj (.-store s)))
+  (jsx->clj (.-store s)))
 
 (defn store-capacity
   [s]
