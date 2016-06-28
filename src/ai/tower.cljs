@@ -7,7 +7,7 @@
             [screeps.structure :as structure]
             [screeps.memory :as m]))
 
-(def desired-wall-strength 300)
+(def desired-wall-strength 1000)
 
 (defn select-repair-candidate
   [room]

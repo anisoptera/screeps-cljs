@@ -34,7 +34,7 @@
 
 (defn find
   [r otype & [ffn]]
-  (array-seq  (.find r otype (if ffn #js {:filter ffn}))))
+  (array-seq (.find r otype (if ffn #js {:filter ffn}))))
 
 (defn find-path
   [r from to & [opts]]
@@ -42,7 +42,7 @@
 
 (defn find-in-range
   [from otype range & [ffn]]
-  (jsx->clj (.findInRange (pos/position from) otype range (if ffn #js {:filter ffn}))))
+  (array-seq (.findInRange (pos/position from) otype range (if ffn #js {:filter ffn}))))
 
 (defn find-closest-by-range
   [from otype & [ffn]]

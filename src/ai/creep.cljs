@@ -7,7 +7,7 @@
             [screeps.structure :as structure]
             [screeps.memory :as m])
   (:refer-clojure :exclude [])
-  (:use [screeps.utils :only [jsx->clj]]))
+  (:use [ai.tower :only [desired-wall-strength]]))
 
 (defn perform-at
   [creep tgt f]
@@ -105,7 +105,12 @@
           ;; drive by repairs
           (when-let [rep-target (first (room/find-in-range creep js/FIND_STRUCTURES 1
                                                            #(< 100 (- (structure/max-hits %) (structure/hits %)))))]
-            (creep/repair creep rep-target))))
+            (if (= js/STRUCTURE_WALL (structure/type rep-target))
+              (when (> desired-wall-strength (structure/hits rep-target))
+                (creep/repair creep rep-target))
+
+              ;; not a wall, don't cap repairs
+              (creep/repair creep rep-target)))))
       (if (= (creep/energy creep) (creep/energy-capacity creep))
         (creep/memory! creep (assoc m "dump" true))
         ;; find something
@@ -137,15 +142,6 @@
         :when (not (= "wall" (pos/look-for check-pos js/LOOK_TERRAIN)))]
     check-pos))
 
-(defn ^:export reset-sources
-  [room]
-  (let [m (room/memory room)
-        creeps (room/find room js/FIND_MY_CREEPS)]
-    (init-sources room)
-    (doseq [creep creeps]
-      (let [cm (creep/memory creep)]
-        (creep/memory! creep (dissoc cm "source"))))))
-
 (defn ^:export init-sources
   [room]
   (let [m (room/memory room)
@@ -154,6 +150,14 @@
     (room/memory! room (assoc m "sources" slots))
     slots))
 
+(defn ^:export reset-sources
+  [room]
+  (let [m (room/memory room)
+        creeps (room/find room js/FIND_MY_CREEPS)]
+    (init-sources room)
+    (doseq [creep creeps]
+      (let [cm (creep/memory creep)]
+        (creep/memory! creep (dissoc cm "source"))))))
 
 (defn ^:export select-source
   [creep]
