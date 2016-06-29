@@ -25,8 +25,6 @@
   [c direction]
   (.move c direction))
 
-
-
 (defn build
   [c t]
   (.build c t))

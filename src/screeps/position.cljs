@@ -40,4 +40,4 @@
 
 (defn find-path-to
   [pos target]
-  (.findPathTo (position pos) (position target)))
+  (.findPathTo (position pos) (position target) #js{"serialize" true}))

@@ -44,7 +44,8 @@
 
 (defn transfer-energy
   [s tgt & [amt]]
-  (if (= (type s) js/STRUCTURE_CONTAINER)
+  (if (or (= (type s) js/STRUCTURE_STORAGE)
+          (= (type s) js/STRUCTURE_CONTAINER))
     (.transfer s tgt js/RESOURCE_ENERGY)
     (.transferEnergy s tgt amt)))
 

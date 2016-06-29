@@ -61,6 +61,16 @@
                               #(and (= (structure/type %) js/STRUCTURE_TOWER)
                                     (< 500 (- (structure/energy-capacity %) (structure/energy %))))))
 
+(defn find-nearest-filter
+  [creep find-dir type-filter & [[ffn]]] ;;why is this a double wrapped list?...
+  (room/find-closest-by-range creep find-dir
+                              #(and (= (structure/type %) type-filter)
+                                    (if ffn (ffn %) true))))
+
+(defn find-storage
+  [creep & ffn]
+  (find-nearest-filter creep js/FIND_MY_STRUCTURES js/STRUCTURE_STORAGE ffn))
+
 (def task-map
   {
    'creep/claim-controller creep/claim-controller
@@ -86,6 +96,32 @@
                   (= js/ERR_TIRED result))
       (creep/memory! creep (dissoc (creep/memory creep) "task")))))
 
+(defn find-driveby-repair-target
+  [creep]
+  (let [m (creep/memory creep)]
+    (if (= 0 (mod (game/time) 6))
+      (let [rep-target (first (room/find-in-range creep js/FIND_STRUCTURES 3
+                                                  #(< 100 (- (structure/max-hits %) (structure/hits %)))))]
+        (if rep-target
+          (creep/memory! creep (assoc m "driveby-target" (structure/id rep-target)))
+          (creep/memory! creep (dissoc m "driveby-target")))
+        rep-target)
+      (if-let [target-id (m "driveby-target")]
+        (game/object target-id)
+        nil))))
+
+(defn do-driveby-repair
+  [creep]
+  (when-let [rep-target (find-driveby-repair-target creep)]
+    (if (= js/STRUCTURE_WALL (structure/type rep-target))
+      (when (> desired-wall-strength (structure/hits rep-target))
+        (let [result (creep/repair creep rep-target)]
+          (when-not (= 0 result)
+            (creep/memory! creep (dissoc (creep/memory creep) "driveby-target")))))
+
+      ;; not a wall, don't cap repairs
+      (creep/repair creep rep-target))))
+
 (defn collect-energy
   [creep]
   (let [room (creep/room creep)
@@ -93,8 +129,11 @@
         empty-extension (memoize find-empty-extension)
         const-site (memoize #(room/find-closest-by-range creep js/FIND_CONSTRUCTION_SITES))
         empty-tower (memoize find-empty-tower)
+        storage (memoize find-storage)
         m (creep/memory creep)
-        sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))]
+        sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))
+        is-courier (= (m "arch") "courier")
+        is-miner (= (m "arch") "miner")]
     (if (m "dump")
       (do
         (if-let [task (m "task")]
@@ -115,14 +154,17 @@
               (const-site)
               (cache-task creep (const-site) 'creep/build)
 
-              (< (.-energy sp1) 300)
+              (and is-courier (< (.-energy sp1) 300))
               (cache-task creep sp1 'creep/transfer-energy)
 
-              (empty-extension creep)
+              (and is-courier (empty-extension creep))
               (cache-task creep (empty-extension creep) 'creep/transfer-energy)
 
-              (empty-tower creep)
+              (and is-courier (empty-tower creep))
               (cache-task creep (empty-tower creep) 'creep/transfer-energy)
+
+              (and is-courier (storage creep))
+              (cache-task creep (storage creep) 'creep/transfer-energy)
 
               :else
               (cache-task creep ctrlr 'creep/upgrade-controller))))
@@ -135,20 +177,19 @@
                                    (dissoc "role"))) ;; after we're done, return to previous role
 
           ;; drive by repairs
-          (when-let [rep-target (first (room/find-in-range creep js/FIND_STRUCTURES 3
-                                                           #(< 100 (- (structure/max-hits %) (structure/hits %)))))]
-            (if (= js/STRUCTURE_WALL (structure/type rep-target))
-              (when (> desired-wall-strength (structure/hits rep-target))
-                (creep/repair creep rep-target))
+          (do-driveby-repair creep)))
 
-              ;; not a wall, don't cap repairs
-              (creep/repair creep rep-target)))))
       (if (= (creep/energy creep) (creep/energy-capacity creep))
         (creep/memory! creep (assoc m "dump" true))
         ;; find something
         (let [ground-score (memoize find-ground-score)
-              container (memoize find-full-container)]
+              container (memoize find-full-container)
+              storage (memoize (fn [c]
+                                 (find-storage c #(< (creep/energy-capacity c) (structure/store-quantity %)))))]
           (cond
+            (and (= (m "arch") "miner") (storage creep))
+            (perform-with creep (storage creep) structure/transfer-energy)
+
             (ground-score creep)
             (perform-at creep (ground-score creep) creep/pickup)
 

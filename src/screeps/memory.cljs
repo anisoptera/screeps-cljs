@@ -18,10 +18,8 @@
   (reset! *memory*
           (let [r (t/reader :json)]
             (t/read r (.get js/RawMemory))))
-  (when (= 0 (mod (game/time) 100))
-    (.log js/console "Running memory cleanup...")
-    (run-memory-cleanup)
-    (.log js/console "done." @*memory*)))
+  (when (= 0 (mod (game/time) 1000))
+    (run-memory-cleanup)))
 
 (defn ^:export write-memory!
   []
