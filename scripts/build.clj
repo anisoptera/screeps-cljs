@@ -16,7 +16,8 @@
                     {:basic-auth [user passwd]
                      :content-type :json
                      :form-params {:branch branch
-                                   :modules {:main (slurp "release/wtf.js")}}})
+                                   :modules {:main (slurp "release/wtf.js")
+                                             :screepsstats (slurp "resources/screeps-stats/screepsstats.js")}}})
        (println "done!"))
       (println "export SCREEPS_USERNAME and SCREEPS_PASSWORD (optionally SCREEPS_BRANCH) to autodeploy code."))))
 
