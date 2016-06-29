@@ -9,9 +9,6 @@
         [ai.spawn :only (run-spawn)]
         [ai.tower :only (run-tower)]))
 
-(set! js/ScreepsStats (js/require "screepsstats"))
-(goog.object.set js/global "Stats" (js/ScreepsStats.))
-
 (defn main-loop
   []
   (memory/load-memory)
@@ -25,9 +22,11 @@
         towers (filter identity (flatten (map (fn [room] (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_TOWER))) rooms)))]
     (doseq [tower towers]
       (run-tower tower)))
-  (memory/write-memory!)
-  ((goog.object.get (goog.object.get js/global "Stats") "runBuiltinStats")))
+  #_(.runBuiltinStats js/global.Stats)
+  (memory/write-memory!))
+
+(let [ScreepsStats (js/require "screepsstats")]
+  (set! js/global.Stats (ScreepsStats.)))
+
 
 (set! js/module.exports.loop main-loop)
-
-

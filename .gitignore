@@ -4,3 +4,4 @@ release/
 
 .lein-repl-history
 .nrepl-port
+scripts/watch.ps1

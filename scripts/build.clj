@@ -28,5 +28,6 @@
               :output-dir "release"
               :optimizations :advanced
               :watch-fn deploy-build
+              :externs ["resources/screeps-stats/externs/screepsstats.ext.js"]
               :verbose true}))
   (println "... done. Elapsed" (/ (- (System/nanoTime) start) 1e9) "seconds"))

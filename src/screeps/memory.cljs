@@ -26,15 +26,15 @@
   (let [w (t/writer :json)]
     (.set js/RawMemory (t/write w @*memory*))))
 
-(defn fetch
+(defn ^:export fetch
   ([]
-   (@*memory*))
+   (clj->js @*memory*))
   ([k]
-   (fetch k nil))
-  ([k default]
-   (if-let [m (aget js/Memory (name k))]
-     (js->clj m :keywordize-keys true)
-     default)))
+   (clj->js (@*memory* k))))
+
+(defn ^:export store
+  ([k val]
+   (swap! *memory* #(assoc % k (js->clj val)))))
 
 (defn store!
   [k o]
@@ -45,4 +45,3 @@
   [k f & args]
   (let [d (fetch k)]
     (store! k (apply f d args))))
-
