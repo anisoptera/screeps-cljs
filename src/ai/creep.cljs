@@ -10,16 +10,18 @@
   (:use [ai.tower :only [desired-wall-strength]]))
 
 (defn perform-at
-  [creep tgt f]
-  (if (pos/next-to? creep tgt)
-    (f creep tgt)
-    (creep/move-to creep tgt)))
+  [creep tgt f & [dist]]
+  (let [dst (or dist 1)]
+    (if (pos/in-range? creep tgt dst)
+      (f creep tgt)
+      (creep/move-to creep tgt))))
 
 (defn perform-with
-  [creep tgt f]
-  (if (pos/next-to? creep tgt)
-    (f tgt creep)
-    (creep/move-to creep tgt)))
+  [creep tgt f & dist]
+  (let [dst (or dist 1)]
+    (if (pos/next-to? creep tgt)
+      (f tgt creep)
+      (creep/move-to creep tgt))))
 
 (defn renew-creep
   [creep]
@@ -27,7 +29,7 @@
         spawns (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN))
         target-spawn (game/spawns  (.-name (first spawns)))]
     (if (pos/next-to? creep target-spawn)
-      (do 
+      (do
         (.renewCreep target-spawn creep))
       (creep/move-to creep target-spawn))))
 
@@ -39,7 +41,7 @@
   [creep]
   (room/find-closest-by-range creep js/FIND_STRUCTURES
                               #(and (= (structure/type %) js/STRUCTURE_CONTAINER)
-                                    (< 0 (structure/store-quantity %)))))
+                                    (< 500 (structure/store-quantity %)))))
 
 (defn find-empty-container
   "Finds the closest empty container to creep (if any)."
@@ -59,7 +61,7 @@
   [creep]
   (room/find-closest-by-range creep js/FIND_MY_STRUCTURES
                               #(and (= (structure/type %) js/STRUCTURE_TOWER)
-                                    (< 500 (- (structure/energy-capacity %) (structure/energy %))))))
+                                    (< 600 (- (structure/energy-capacity %) (structure/energy %))))))
 
 (defn find-nearest-filter
   [creep find-dir type-filter & [[ffn]]] ;;why is this a double wrapped list?...
@@ -73,28 +75,28 @@
 
 (def task-map
   {
-   'creep/claim-controller creep/claim-controller
-   'creep/upgrade-controller creep/upgrade-controller
-   'creep/transfer-energy creep/transfer-energy
-   'creep/build creep/build
+   'creep/claim-controller [creep/claim-controller 1]
+   'creep/upgrade-controller [creep/upgrade-controller 3]
+   'creep/transfer-energy [creep/transfer-energy 1]
+   'creep/build [creep/build 3]
    })
 
 (defn cache-task
   [creep tgt sym]
   (let [m (creep/memory creep)
-        fun (task-map sym)]
+        [fun dist] (task-map sym)]
     (creep/memory! creep (assoc m "task" [(structure/id tgt) sym]))
-    (perform-at creep tgt fun)))
+    (perform-at creep tgt fun dist)))
 
 (defn perform-cached-task
-  [creep task]
-  (let [[tgt-id sym] task
-        tgt (game/object tgt-id)
-        fun (task-map sym)
-        result (perform-at creep tgt fun)]
-    (when-not (or (= 0 result)
-                  (= js/ERR_TIRED result))
-      (creep/memory! creep (dissoc (creep/memory creep) "task")))))
+  [creep [tgt-id sym]]
+  (if-let [tgt (game/object tgt-id)]
+    (let [[fun dist] (task-map sym)
+          result (perform-at creep tgt fun dist)]
+      (when-not (or (= 0 result)
+                    (= js/ERR_TIRED result))
+        (creep/memory! creep (dissoc (creep/memory creep) "task"))))
+    (creep/memory! creep (dissoc (creep/memory creep) "task"))))
 
 (defn find-driveby-repair-target
   [creep]

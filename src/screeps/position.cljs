@@ -8,6 +8,12 @@
   [pos]
   (.-roomName pos))
 
+(defn eq?
+  ([pos other]
+   (.isEqualTo pos other))
+  ([pos x y]
+   (.isEqualTo pos x y)))
+
 (defn position
   "return the position of the object or the object if it is a position.  nil if it can't get position"
   [o]
@@ -15,6 +21,11 @@
     (aget o "pos")
     (if (.hasOwnProperty o "x")
       o)))
+
+(defn get-xy
+  [o]
+  (let [pos (position o)]
+    [(.-x pos) (.-y pos)]))
 
 (defn range-to
   ([from x y]

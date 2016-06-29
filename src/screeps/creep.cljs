@@ -25,6 +25,10 @@
   [c direction]
   (.move c direction))
 
+(defn fatigue
+  [c]
+  (.-fatigue c))
+
 (defn build
   [c t]
   (.build c t))
@@ -90,11 +94,15 @@
 
 (defn move-to
   [c target]
-  (let [m (memory c)
-        [stamp path] (get m "path" [])]
-    (if (and (not (nil? path))
-             (> path-freshness (- (game/time) stamp)))
-      (move-by-path c path)
-      (let [path (pos/find-path-to c target)]
-        (memory! c (assoc m "path" [(game/time) path]))
-        (move-by-path c path)))))
+  (if (= 0 (fatigue c))
+    (let [m (memory c)
+          target-pos (pos/position target)
+          [stamp [x y] path] (get m "path" [])]
+      (if (and (not (nil? path))
+               (pos/eq? target-pos x y)
+               (> path-freshness (- (game/time) stamp)))
+        (move-by-path c path)
+        (let [path (pos/find-path-to c target)]
+          (memory! c (assoc m "path" [(game/time) (pos/get-xy target) path]))
+          (move-by-path c path))))
+    js/ERR_TIRED))
