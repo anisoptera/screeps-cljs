@@ -37,3 +37,7 @@
 (defn look-for
   [pos otype]
   (.lookFor pos otype))
+
+(defn find-path-to
+  [pos target]
+  (.findPathTo (position pos) (position target)))

@@ -1,5 +1,7 @@
 (ns screeps.creep
   (:refer-clojure :exclude [name])
+  (:require [screeps.game :as game]
+            [screeps.position :as pos])
   (:use [screeps.utils :only [jsx->clj]]
         [screeps.memory :only [*memory*]]))
 
@@ -23,9 +25,7 @@
   [c direction]
   (.move c direction))
 
-(defn move-to
-  [c target]
-  (.moveTo c target))
+
 
 (defn build
   [c t]
@@ -77,9 +77,26 @@
 
 (defn memory
   [c]
-  (get-in @*memory* ["creeps" (name c)] {}))
+  (or (get-in @*memory* ["creeps" (name c)] {})
+      {}))
 
 (defn memory!
   [c m]
   (swap! *memory* #(assoc-in % ["creeps" (name c)] m)))
 
+(def path-freshness 10)
+
+(defn move-by-path
+  [c path]
+  (.moveByPath c (clj->js path)))
+
+(defn move-to
+  [c target]
+  (let [m (memory c)
+        [stamp path] (get m "path" [])]
+    (if (and (not (nil? path))
+             (> path-freshness (- (game/time) stamp)))
+      (move-by-path c path)
+      (let [path (pos/find-path-to c target)]
+        (memory! c (assoc m "path" [(game/time) path]))
+        (move-by-path c path)))))

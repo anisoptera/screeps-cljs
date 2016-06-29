@@ -6,7 +6,7 @@
             [screeps.position :as pos]
             [screeps.structure :as structure]
             [screeps.memory :as m]))
-            
+
 (defn test-game
   []
   (.log js/console "time: " (game/time))
@@ -40,11 +40,11 @@
 (defn test-memory
   []
   (let [t {:a 1 :b "two"}]
-    (m/store :test t))
+    (m/store! :test t))
 
-  (m/update :inc (fnil inc 0))
-  (.log js/console "memory: " (m/memory :test))
-  (.log js/console "memory: " (m/memory :inc))
+  (m/update! :inc (fnil inc 0))
+  (.log js/console "memory: " (@m/*memory* :test))
+  (.log js/console "memory: " (@m/*memory* :inc))
   )
 
 (defn test-room

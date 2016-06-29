@@ -61,6 +61,30 @@
                               #(and (= (structure/type %) js/STRUCTURE_TOWER)
                                     (< 500 (- (structure/energy-capacity %) (structure/energy %))))))
 
+(def task-map
+  {
+   'creep/claim-controller creep/claim-controller
+   'creep/upgrade-controller creep/upgrade-controller
+   'creep/transfer-energy creep/transfer-energy
+   'creep/build creep/build
+   })
+
+(defn cache-task
+  [creep tgt sym]
+  (let [m (creep/memory creep)
+        fun (task-map sym)]
+    (creep/memory! creep (assoc m "task" [(structure/id tgt) sym]))
+    (perform-at creep tgt fun)))
+
+(defn perform-cached-task
+  [creep task]
+  (let [[tgt-id sym] task
+        tgt (game/object tgt-id)
+        fun (task-map sym)
+        result (perform-at creep tgt fun)]
+    (when-not (or (= 0 result)
+                  (= js/ERR_TIRED result))
+      (creep/memory! creep (dissoc (creep/memory creep) "task")))))
 
 (defn collect-energy
   [creep]
@@ -73,37 +97,45 @@
         sp1 (first (room/find room js/FIND_MY_STRUCTURES #(= (structure/type %) js/STRUCTURE_SPAWN)))]
     (if (m "dump")
       (do
-        (cond
-          (and (not (nil? ctrlr)) (not (structure/mine? ctrlr)))
-          (perform-at creep ctrlr creep/claim-controller)
+        (if-let [task (m "task")]
+          (perform-cached-task creep task)
 
-          (= 1 (structure/level ctrlr))
-          (perform-at creep ctrlr creep/upgrade-controller)
+          ;; find a new task
+          (do
+            (cond
+              (and (not (nil? ctrlr)) (not (structure/mine? ctrlr)))
+              (cache-task creep ctrlr 'creep/claim-controller)
 
-          (< (.-energy sp1) 100)
-          (perform-at creep sp1 creep/transfer-energy)
+              (= 1 (structure/level ctrlr))
+              (cache-task creep ctrlr 'creep/upgrade-controller)
 
-          (const-site)
-          (perform-at creep (const-site) creep/build)
+              (< (.-energy sp1) 100)
+              (cache-task creep sp1 'creep/transfer-energy)
 
-          (< (.-energy sp1) 300)
-          (perform-at creep sp1 creep/transfer-energy)
+              (const-site)
+              (cache-task creep (const-site) 'creep/build)
 
-          (empty-extension creep)
-          (perform-at creep (empty-extension creep) creep/transfer-energy)
+              (< (.-energy sp1) 300)
+              (cache-task creep sp1 'creep/transfer-energy)
 
-          (empty-tower creep)
-          (perform-at creep (empty-tower creep) creep/transfer-energy)
+              (empty-extension creep)
+              (cache-task creep (empty-extension creep) 'creep/transfer-energy)
 
-          :else
-          (perform-at creep ctrlr creep/upgrade-controller))
+              (empty-tower creep)
+              (cache-task creep (empty-tower creep) 'creep/transfer-energy)
+
+              :else
+              (cache-task creep ctrlr 'creep/upgrade-controller))))
+
+        ;; reset if empty
         (if (= (creep/energy creep) 0)
           (creep/memory! creep (-> m
                                    (dissoc "dump")
+                                   (dissoc "task")   ;; clear task cache
                                    (dissoc "role"))) ;; after we're done, return to previous role
 
           ;; drive by repairs
-          (when-let [rep-target (first (room/find-in-range creep js/FIND_STRUCTURES 1
+          (when-let [rep-target (first (room/find-in-range creep js/FIND_STRUCTURES 3
                                                            #(< 100 (- (structure/max-hits %) (structure/hits %)))))]
             (if (= js/STRUCTURE_WALL (structure/type rep-target))
               (when (> desired-wall-strength (structure/hits rep-target))

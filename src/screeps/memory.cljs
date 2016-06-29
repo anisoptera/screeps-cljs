@@ -1,13 +1,27 @@
 (ns screeps.memory
-  (:require [cognitect.transit :as t]))
+  (:require [screeps.game :as game]
+            [cognitect.transit :as t]))
 
 (def *memory* (atom {}))
+
+(defn cleanup-memory
+  [mem]
+  (-> mem
+      (assoc "creeps" (into {} (filter #(game/creeps (first %)) (mem "creeps"))))))
+
+(defn ^:export run-memory-cleanup
+  []
+  (swap! *memory* cleanup-memory))
 
 (defn ^:export load-memory
   []
   (reset! *memory*
           (let [r (t/reader :json)]
-            (t/read r (.get js/RawMemory)))))
+            (t/read r (.get js/RawMemory))))
+  (when (= 0 (mod (game/time) 100))
+    (.log js/console "Running memory cleanup...")
+    (run-memory-cleanup)
+    (.log js/console "done." @*memory*)))
 
 (defn ^:export write-memory!
   []
