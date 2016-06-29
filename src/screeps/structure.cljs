@@ -12,7 +12,7 @@
 
 (defn max-hits
   [s]
-  (.-maxHits s))
+  (.-hitsMax s))
 
 (defn id
   [s]
@@ -30,7 +30,6 @@
   [s]
   (.-structureType s))
 
-
 (defn destroy
   [s]
   (.destroy s))
@@ -45,7 +44,9 @@
 
 (defn transfer-energy
   [s tgt & [amt]]
-  (.transferEnergy s tgt amt))
+  (if (= (type s) js/STRUCTURE_CONTAINER)
+    (.transfer s tgt js/RESOURCE_ENERGY)
+    (.transferEnergy s tgt amt)))
 
 (defn cooldown
   [s]
@@ -71,11 +72,18 @@
   [s]
   (.-ticksToLive s))
 
+(defn jsx->clj
+  [x]
+  (into {} (for [k (.keys js/Object x)] [(keyword k) (aget x k)])))
+
 (defn store
   [s]
-  (.-store s))
+  (jsx->clj (.-store s)))
+
+(defn store-quantity
+  [s]
+  (reduce + (vals (store s))))
 
 (defn store-capacity
   [s]
   (.-storeCapacity s))
-

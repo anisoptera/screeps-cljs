@@ -1,8 +1,23 @@
-(ns screeps.memory)
+(ns screeps.memory
+  (:require [screeps.game :as game]
+            [cognitect.transit :as t]))
+
+(def *memory* (atom {}))
+
+(defn ^:export load-memory
+  []
+  (reset! *memory*
+          (let [r (t/reader :json)]
+            (t/read r (.get js/RawMemory)))))
+
+(defn ^:export write-memory!
+  []
+  (let [w (t/writer :json)]
+    (.set js/RawMemory (t/write w @*memory*))))
 
 (defn fetch
   ([]
-   (js->clj js/Memory))
+   (@*memory*))
   ([k]
    (fetch k nil))
   ([k default]
@@ -12,11 +27,11 @@
 
 (defn store!
   [k o]
-  (aset js/Memory (name k) (clj->js o)))
+  (swap! *memory* #(assoc % (name k) o)))
 
 (defn update!
   "call f with memory location k and store the result back in k"
   [k f & args]
   (let [d (fetch k)]
-    (store k (apply f d args))))
+    (store! k (apply f d args))))
 

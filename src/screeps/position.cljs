@@ -1,8 +1,12 @@
 (ns screeps.position)
 
 (defn create
-  [x y room]
-  (js/RoomPosition. x y room))
+  [x y room-name]
+  (js/RoomPosition. x y room-name))
+
+(defn room-name
+  [pos]
+  (.-roomName pos))
 
 (defn position
   "return the position of the object or the object if it is a position.  nil if it can't get position"
@@ -16,7 +20,7 @@
   ([from x y]
    (.getRangeTo (position from) x y))
   ([from to]
-   (.getRangeTo (position from) to)))
+   (.getRangeTo (position from) (position to))))
 
 (defn in-range?
   ([p x y rng]
@@ -30,3 +34,10 @@
   ([p o]
    (.isNearTo (position p) o)))
 
+(defn look-for
+  [pos otype]
+  (.lookFor pos otype))
+
+(defn find-path-to
+  [pos target]
+  (.findPathTo (position pos) (position target)))

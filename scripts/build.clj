@@ -1,5 +1,6 @@
 (require '[cljs.build.api :as b])
 (require '[clj-http.client :as client])
+(require '[cljs.analyzer :as analyzer])
 
 (println "Building ...")
 
@@ -20,10 +21,11 @@
       (println "export SCREEPS_USERNAME and SCREEPS_PASSWORD (optionally SCREEPS_BRANCH) to autodeploy code."))))
 
 (let [start (System/nanoTime)]
-  (b/watch "src"
-    {:output-to "release/wtf.js"
-     :output-dir "release"
-     :optimizations :advanced
-     :watch-fn deploy-build
-     :verbose true})
+  (binding [analyzer/*cljs-warnings* (assoc analyzer/*cljs-warnings* :single-segment-namespace false)]
+    (b/watch "src"
+             {:output-to "release/wtf.js"
+              :output-dir "release"
+              :optimizations :advanced
+              :watch-fn deploy-build
+              :verbose true}))
   (println "... done. Elapsed" (/ (- (System/nanoTime) start) 1e9) "seconds"))
