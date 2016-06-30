@@ -9,7 +9,7 @@
 (defn ^:export create-template
   [sp role]
   (let [template (spawn/templates role)
-        energy (room/available-energy sp)
+        energy (room/available-energy (spawn/room sp))
         new-creep (.createCreep sp (clj->js (spawn/cap-template template energy)) nil nil)]
     (when (string? new-creep)
       (memory/store-in ["creeps" new-creep] {"arch" role "size" (spawn/body-cost template)}))))

@@ -49,7 +49,8 @@
 
 (defn cap-template
   [[template & rest] max-cost]
-  (if (<= (body-cost template) max-cost)
+  (if (or (<= (body-cost template) max-cost)
+          (nil? template))
     template
     (recur rest max-cost)))
 

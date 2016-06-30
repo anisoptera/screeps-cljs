@@ -33,4 +33,4 @@
 (set! js/module.exports.loop main-loop)
 
 ;; Convenience methods for the console.
-(set! js/w memory/write-memory!)
+(set! js/global.w memory/write-memory!)
