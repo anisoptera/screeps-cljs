@@ -36,12 +36,14 @@
   ([k val]
    (swap! *memory* #(assoc % k (js->clj val)))))
 
-(defn store!
-  [k o]
-  (swap! *memory* #(assoc % (name k) o)))
+(defn store-in
+  ([ks val]
+   (swap! *memory* #(assoc-in % ks val))))
+
 
 (defn update!
   "call f with memory location k and store the result back in k"
   [k f & args]
   (let [d (fetch k)]
-    (store! k (apply f d args))))
+    (store k (apply f d args))
+    (write-memory!)))

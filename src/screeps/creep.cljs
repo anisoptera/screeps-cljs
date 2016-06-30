@@ -35,7 +35,7 @@
 
 (defn repair
   [c t]
-  (.repair c t))
+  (.repair c (clj->js t)))
 
 (defn harvest
   [c t]
@@ -86,7 +86,7 @@
   [c m]
   (swap! *memory* #(assoc-in % ["creeps" (name c)] m)))
 
-(def path-freshness 10)
+(def path-freshness 20)
 
 (defn move-by-path
   [c path]
@@ -104,5 +104,9 @@
         (move-by-path c path)
         (let [path (pos/find-path-to c target)]
           (memory! c (assoc m "path" [(game/time) (pos/get-xy target) path]))
-          (move-by-path c path))))
+          (let [result (move-by-path c path)]
+            (if-not (or (= 0 result)
+                        (= js/ERR_TIRED result))
+              (memory! m (dissoc m "path")))
+            result))))
     js/ERR_TIRED))

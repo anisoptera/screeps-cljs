@@ -20,6 +20,19 @@
   [s]
   (.-spawning s))
 
+(defn create-creep
+  [sp body]
+  (.createCreep sp (clj->js body) nil nil))
+
+(defn renew-creep
+  [sp creep]
+  (.renewCreep sp creep))
+
+(defn energy
+  [sp]
+  (.-energy sp))
+
+;; these are here and not in ai.spawn because some stuff in ai.creep needs them for now.
 (def costs
   {js/WORK 100
    js/MOVE 50
@@ -35,49 +48,24 @@
   (reduce + (map costs body)))
 
 (defn cap-template
-  [template max-cost]
+  [[template & rest] max-cost]
   (if (<= (body-cost template) max-cost)
     template
-    (cap-template (butlast template) max-cost)))
+    (recur rest max-cost)))
 
 (def templates
   {"miner"
-   [js/MOVE js/WORK js/CARRY js/WORK ; 300
-    js/WORK js/MOVE js/WORK ; 550
-    js/WORK js/CARRY js/MOVE js/MOVE; 800 
+   [[js/MOVE js/MOVE js/CARRY js/WORK js/WORK js/WORK js/WORK js/WORK]
+    [js/MOVE js/MOVE js/CARRY js/WORK js/WORK js/WORK js/WORK] ; 550
+    [js/MOVE js/CARRY js/WORK js/WORK] ; 300
     ]
+   
+   "rescue"
+   [[js/MOVE js/WORK js/CARRY js/CARRY js/MOVE]]
 
    "courier"
-   [js/MOVE js/CARRY js/CARRY js/WORK js/MOVE ; 300
-    js/CARRY js/CARRY js/WORK js/MOVE ; 550
-    js/CARRY js/CARRY js/CARRY js/CARRY js/CARRY ; 800 - carries 450
-    js/CARRY js/MOVE js/MOVE js/MOVE js/WORK js/WORK js/MOVE ; 1300 - carries 500, moves 1/tick on roads, has 4 WORKs
+   [[js/MOVE js/CARRY js/CARRY js/WORK js/MOVE js/CARRY js/CARRY js/WORK js/MOVE js/CARRY js/CARRY js/CARRY js/CARRY js/CARRY js/CARRY js/MOVE js/MOVE js/MOVE js/WORK js/WORK js/MOVE]  ; 1300 - carries 500, moves 1/tick on roads, has 4 WORKs
+    [js/MOVE js/CARRY js/CARRY js/WORK js/MOVE js/CARRY js/CARRY js/WORK js/MOVE js/CARRY js/CARRY js/CARRY js/CARRY js/CARRY] ; 800 - carries 450
+    [js/MOVE js/CARRY js/CARRY js/WORK js/MOVE js/CARRY js/CARRY js/WORK js/MOVE] ; 550
+    [js/MOVE js/CARRY js/CARRY js/WORK js/MOVE] ; 300
     ]})
-
-(defn create-template
-  [sp role]
-  (let [template (templates role)
-        capacity (room/energy-capacity (room sp))
-        new-creep (.createCreep sp (clj->js (cap-template template capacity)) nil nil)]
-    (when (string? new-creep)
-      (swap! *memory* #(assoc-in % ["creeps" new-creep] {"arch" role "size" capacity})))))
-
-(defn create-miner
-  [sp]
-  (create-template sp "miner"))
-
-(defn create-courier
-  [sp]
-  (create-template sp "courier"))
-
-(defn create-creep
-  [sp body]
-  (.createCreep sp (clj->js body) nil nil))
-
-(defn renew-creep
-  [sp creep]
-  (.renewCreep sp creep))
-
-(defn energy
-  [sp]
-  (.-energy sp))
