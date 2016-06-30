@@ -156,6 +156,8 @@ global.prototype = {
 
     MODE_SURVIVAL: "survival",
     MODE_ARENA: "arena",
+    MODE_SIMULATION: "simulation",
+    MODE_WORLD: "world",
 
     Game: null,
 

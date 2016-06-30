@@ -38,10 +38,18 @@
 
       :else nil)))
 
+(defn select-hostile-target
+  [room]
+  (let [enemies (room/find room js/FIND_HOSTILE_CREEPS)]
+    (first enemies)))
+
 (defn run-tower
   [tower]
   (let [room (structure/room tower)
         energy (structure/energy tower)]
-    (when (> energy 200)
-      (when-let [repair-target (select-repair-candidate room)]
-        (.repair tower repair-target)))))
+    (if-let [hostile-target (select-hostile-target room)]
+      (.attack tower hostile-target)
+
+      (when (> energy 200)
+        (when-let [repair-target (select-repair-candidate room)]
+          (.repair tower repair-target))))))

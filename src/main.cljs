@@ -32,5 +32,6 @@
 
 (set! js/module.exports.loop main-loop)
 
-;; Convenience methods for the console.
-(set! js/global.w memory/write-memory!)
+;; Convenience methods for the console. (only works on world)
+(when (= (.-mode (first (game/rooms))) js/MODE_WORLD)
+  (set! js/w memory/write-memory!))
