@@ -34,5 +34,5 @@
           (< 0 free-slots)
           (do (.log js/console "making miners~") (spawn/create-miner sp))
 
-          (< (count couriers) (count miners))
+          (< (count couriers) (* 3 (count ((room/memory room) "sources"))))
           (do (.log js/console "couriers it is") (spawn/create-courier sp)))))))

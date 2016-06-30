@@ -88,7 +88,7 @@ Flag.prototype = {
 var Game = function () { };
 
 Game.prototype = {
-	cpuLimit: 0,
+	cpu: null,
 	creeps: null,
 	map: null,
 	flags: null,
@@ -98,9 +98,17 @@ Game.prototype = {
 	time: 0,
 	getObjectById: function (id) { },
 	getRoom: function (name) { },
-	getUsedCpu: function(callback) { },
 	notify: function (message, groupInterval) { }
 };
+
+var Cpu = function () { };
+Cpu.prototype = {
+    limit: 0,
+    tickLimit: 0,
+    bucket: 0,
+    getUsed: function () {}
+};
+
 var global = function () { };
 
 global.prototype = {

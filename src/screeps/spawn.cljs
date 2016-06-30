@@ -40,33 +40,35 @@
     template
     (cap-template (butlast template) max-cost)))
 
+(def templates
+  {"miner"
+   [js/MOVE js/WORK js/CARRY js/WORK ; 300
+    js/WORK js/MOVE js/WORK ; 550
+    js/WORK js/CARRY js/MOVE js/MOVE; 800 
+    ]
+
+   "courier"
+   [js/MOVE js/CARRY js/CARRY js/WORK js/MOVE ; 300
+    js/CARRY js/CARRY js/WORK js/MOVE ; 550
+    js/CARRY js/CARRY js/CARRY js/CARRY js/CARRY ; 800 - carries 450
+    js/CARRY js/MOVE js/MOVE js/MOVE js/WORK js/WORK js/MOVE ; 1300 - carries 500, moves 1/tick on roads, has 4 WORKs
+    ]})
+
 (defn create-template
-  [sp template role]
-  (let [capacity (room/energy-capacity (room sp))
+  [sp role]
+  (let [template (templates role)
+        capacity (room/energy-capacity (room sp))
         new-creep (.createCreep sp (clj->js (cap-template template capacity)) nil nil)]
     (when (string? new-creep)
       (swap! *memory* #(assoc-in % ["creeps" new-creep] {"arch" role "size" capacity})))))
 
-
-(def miner-template
-  [js/MOVE js/WORK js/CARRY js/WORK ; 300
-   js/WORK js/MOVE js/WORK ; 550
-   js/WORK js/CARRY js/WORK ; 800 - at which point we should have roads
-   ])
-
 (defn create-miner
   [sp]
-  (create-template sp miner-template "miner"))
-
-(def courier-template
-  [js/MOVE js/CARRY js/CARRY js/WORK js/MOVE ; 300
-   js/CARRY js/CARRY js/WORK js/MOVE ; 550
-   js/CARRY js/CARRY js/CARRY js/CARRY js/CARRY ; 800 - carries 500
-   ])
+  (create-template sp "miner"))
 
 (defn create-courier
   [sp]
-  (create-template sp courier-template "courier"))
+  (create-template sp "courier"))
 
 (defn create-creep
   [sp body]

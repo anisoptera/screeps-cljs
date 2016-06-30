@@ -165,7 +165,8 @@
               (and is-courier (empty-tower creep))
               (cache-task creep (empty-tower creep) 'creep/transfer-energy)
 
-              (and is-courier (storage creep))
+              ;; don't put stuff from storage back there, that way lies madness
+              (and (not (get m "from-storage" false)) is-courier (storage creep))
               (cache-task creep (storage creep) 'creep/transfer-energy)
 
               :else
@@ -175,6 +176,7 @@
         (if (= (creep/energy creep) 0)
           (creep/memory! creep (-> m
                                    (dissoc "dump")
+                                   (dissoc "from-storage")
                                    (dissoc "task")   ;; clear task cache
                                    (dissoc "role"))) ;; after we're done, return to previous role
 
@@ -197,6 +199,10 @@
 
             (container creep)
             (perform-with creep (container creep) structure/transfer-energy)
+
+            (storage creep)
+            (do (perform-with creep (storage creep) structure/transfer-energy)
+                (creep/memory! m (assoc m "from-storage" true)))
 
             :else ;;probably bootstrapping, just try to mine
             (let [source (room/find-closest-by-range creep js/FIND_SOURCES_ACTIVE)]
@@ -221,7 +227,7 @@
   [room]
   (let [m (room/memory room)
         sources (room/find room js/FIND_SOURCES)
-        slots (into {} (map #(vector (structure/id %) {"free" (count (open-adjacent-tiles (pos/position %)))}) sources))]
+        slots (into {} (map #(vector (structure/id %) {"free" 1}) sources))]
     (room/memory! room (assoc m "sources" slots))
     slots))
 
@@ -303,7 +309,8 @@
             spawn (first (room/find room js/FIND_MY_SPAWNS))
             size (or (get m "size")
                      (spawn/body-cost (map #(get % :type) (creep/body creep))))]
-        (if (= size (room/energy-capacity room))
+        (if (or (>= size (room/energy-capacity room))
+                (>= size (spawn/body-cost (spawn/templates (m "arch")))))
           (do (creep/memory! creep (assoc m "renewing" true))
               true)
           (do (creep/memory! creep (assoc m "dying" true))

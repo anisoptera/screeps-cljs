@@ -35,11 +35,18 @@
   [id]
   (.getObjectById js/Game id))
 
+(defn cpu
+  []
+  (.-cpu js/Game))
+
 (defn used-cpu
   []
-  (.getUsedCpu js/Game))
+  (.getUsed (cpu)))
 
 (defn cpu-limit
   []
-  (.-cpuLimit js/Game))
+  (.-tickLimit (cpu)))
 
+(defn cpu-bucket
+  []
+  (.-bucket (cpu)))

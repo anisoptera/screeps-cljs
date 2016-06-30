@@ -23,7 +23,8 @@
     (doseq [tower towers]
       (run-tower tower)))
   #_(.runBuiltinStats js/global.Stats)
-  (memory/write-memory!))
+  (memory/write-memory!)
+  (js/console.log "stats: used" (game/used-cpu) "| limit" (game/cpu-limit) "| bucket" (game/cpu-bucket)))
 
 (let [ScreepsStats (js/require "screepsstats")]
   (set! js/global.Stats (ScreepsStats.)))
