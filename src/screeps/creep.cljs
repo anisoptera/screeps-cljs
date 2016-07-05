@@ -49,13 +49,26 @@
   [c]
   (.-spawning c))
 
+(defn carry
+  [c]
+  (jsx->clj (aget c "carry")))
+
 (defn energy
   [c]
   (aget c "carry" "energy"))
 
+(defn cargo-amount
+  [c]
+  (reduce + (vals (carry c))))
+
 (defn energy-capacity
   [c]
   (aget c "carryCapacity"))
+
+(defn transfer-everything
+  [c t]
+  (doseq [i (carry c)]
+    (.transfer c t (name (first i)) nil)))
 
 (defn transfer-energy
   [c t]

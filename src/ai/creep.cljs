@@ -83,6 +83,7 @@
    'creep/claim-controller [creep/claim-controller 1]
    'creep/upgrade-controller [creep/upgrade-controller 3]
    'creep/transfer-energy [creep/transfer-energy 1]
+   'creep/transfer-everything [creep/transfer-everything 1]
    'creep/build [creep/build 3]
    })
 
@@ -184,13 +185,13 @@
 
               ;; don't put stuff from storage back there, that way lies madness
               (and is-courier (storage creep) (not (m "from-storage")))
-              (cache-task creep (storage creep) 'creep/transfer-energy)
+              (cache-task creep (storage creep) 'creep/transfer-everything)
 
               :else
               (cache-task creep ctrlr 'creep/upgrade-controller))))
 
         ;; reset if empty
-        (if (= (creep/energy creep) 0)
+        (if (= (creep/cargo-amount creep) 0)
           (creep/memory! creep (-> m
                                    (dissoc "dump")
                                    (dissoc "from-storage")
@@ -200,7 +201,7 @@
           ;; drive by repairs
           (do-driveby-repair creep)))
 
-      (if (= (creep/energy creep) (creep/energy-capacity creep))
+      (if (= (creep/cargo-amount creep) (creep/energy-capacity creep))
         (creep/memory! creep (assoc m "dump" true))
         ;; find something
         (let [ground-score (memoize find-ground-score)
